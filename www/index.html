@@ -37,15 +37,33 @@
   <link href='https://fonts.googleapis.com/css?family=Open+Sans:600italic,400,700,300' rel='stylesheet' type='text/css'>
   <link  href='css/main.css' rel='stylesheet'>
 
+  <!-- EJW: Style overrides to support proper indentation -->
+
+  <style>
+    blockquote {
+      padding-left: 20px !important;
+      padding-top: 0px !important;
+      padding-right: 20px !important;
+      padding-bottom: 0px !important;
+      color: #898788 !important;
+    }
+    blockquote > p {
+      padding-top: 0px !important;
+      padding-bottom: 0px !important;
+    }
+  </style>
+
+  <!-- End of style overrides -->
 
   <!-- Initializer -->
   <script>
     Flatdoc.run({
-      fetcher: Flatdoc.github('ripple/ripple-dev-portal', 'API.md')
+      fetcher: Flatdoc.github('erikwestra/ripple-dev-portal', 'API.md')
+      // fetcher: Flatdoc.file('API.md')
     });
   </script>
 </head>
-<body role='flatdoc'>
+<body role='flatdoc' class='no-literate'>
 
   <div class='header'>
     <div class='left'>

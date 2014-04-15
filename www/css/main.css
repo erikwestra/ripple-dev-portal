@@ -38,7 +38,7 @@ body {
   color: #898788;
   font-family: 'Open Sans', sans-serif;
 }
-body .content-root {
+body:not(.no-literate) .content-root {
   background-color: #f3f6fb;
   -webkit-box-shadow: inset 780px 0 #ffffff, inset 781px 0 #dfe2e7, inset 790px 0 5px -10px rgba(0, 0, 0, 0.1);
   box-shadow: inset 780px 0 #ffffff, inset 781px 0 #dfe2e7, inset 790px 0 5px -10px rgba(0, 0, 0, 0.1);
