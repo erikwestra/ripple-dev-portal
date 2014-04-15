@@ -12,12 +12,16 @@ While there are different APIs that you can use, for example by accessing the `r
 
 ## Available API Routes ##
 
-+ [`GET /v1/accounts/:account/payments/paths/:dst_account/:dst_amount`](#preparing-a-payment)
-+ [`POST /v1/payments`](#submitting-a-payment)
-+ [`GET /api/v1/addresses/:address/next_notification`](#most-recent-notification)
-+ [`GET /api/v1/addresses/:address/next_notification/:prev-hash`](#checking-next-notification)
-+ [`GET /api/v1/addresses/:address/payments/:hash`](#retrieving-a-payment)
-+ [`GET /api/v1/status`](#check-rippled-status)
+* [`GET /v1/accounts/:account/payments/paths/:dst_account/:dst_amount`](#preparing-a-payment)
+* [`POST /v1/payments`](#submitting-a-payment)
+* [`GET /v1/accounts/:account/payments/:transaction_id`](#confirming-a-payment) 
+* [`GET /v1/accounts/:account/payments`](#payment-history)
+* [`GET /v1/accounts/:account/balances`](#account-balances)
+* [`GET /v1/accounts/:account/settings`](#account-settings)
+* [`GET /v1/server/connected`](#check-connection-state)
+* [`GET /v1/status`](#check-server-status)
+* [`GET /v1/transactions/:tx_hash`](#retrieve-ripple-transaction)
+* [`GET /v1/uuid1`](#create-client-resource-id)
 
 ## API Overview ##
 
