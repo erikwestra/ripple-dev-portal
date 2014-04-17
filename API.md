@@ -12,16 +12,16 @@ While there are different APIs that you can use, for example by accessing the `r
 
 ## Available API Routes ##
 
-* [`GET /v1/accounts/:account/payments/paths/:dst_account/:dst_amount`](#preparing-a-payment)
+* [`GET /v1/accounts/{account}/payments/paths/{dst_account}/{dst_amount}`](#preparing-a-payment)
 * [`POST /v1/payments`](#submitting-a-payment)
-* [`GET /v1/accounts/:account/payments/:transaction_id`](#confirming-a-payment) 
-* [`GET /v1/accounts/:account/payments`](#payment-history)
-* [`GET /v1/accounts/:account/balances`](#account-balances)
-* [`GET /v1/accounts/:account/settings`](#account-settings)
+* [`GET /v1/accounts/{account}/payments/{transaction_id}`](#confirming-a-payment) 
+* [`GET /v1/accounts/{account}/payments`](#payment-history)
+* [`GET /v1/accounts/{account}/balances`](#account-balances)
+* [`GET /v1/accounts/{account}/settings`](#account-settings)
 * [`GET /v1/server/connected`](#check-connection-state)
 * [`GET /v1/status`](#check-server-status)
-* [`GET /v1/transactions/:tx_hash`](#retrieve-ripple-transaction)
-* [`GET /v1/uuid1`](#create-client-resource-id)
+* [`GET /v1/transactions/{tx_hash}`](#retrieve-ripple-transaction)
+* [`GET /v1/uuid`](#create-client-resource-id)
 
 ## API Overview ##
 
@@ -302,6 +302,7 @@ When a payment is confirmed in the Ripple ledger, it will have additional fields
     }]
 }
 ```
+<!-- I've commented this out as we don't seem to need it.
 
 #### 3. Notification ####
 
@@ -357,6 +358,8 @@ If there are no new notifications, the empty `Notification` object will be retur
 }
 ```
 
+-->
+
 # PAYMENTS #
 
 `ripple-rest` provides access to `ripple-lib`'s robust transaction submission processes. This means that it will set the fee, manage the transaction sequence numbers, sign the transaction with your secret, and resubmit the transaction up to 10 times if `rippled` reports an initial error that can be solved automatically.
@@ -365,7 +368,7 @@ If there are no new notifications, the empty `Notification` object will be retur
 
 ### Preparing a Payment ###
 
-> __`GET /v1/accounts/:account/payments/paths/:dst_account/:dst_amount`__
+> __`GET /v1/accounts/{account}/payments/paths/{dst_account}/{dst_amount}`__
 
 To prepare a payment, you first make an HTTP `GET` call to the above endpoint.  This will generate a list of possible payments between the two parties for the desired amount, taking into account the established trustlines between the two parties for the currency being transferred.  You can then choose one of the returned payments, modify it if necessary (for example, to set slippage values or tags), and then submit the payment for processing.
 
@@ -463,9 +466,9 @@ Note that payments cannot be cancelled once they have been submitted.
 
 ### Confirming a Payment ###
 
-> __`GET /v1/accounts/:account/payments/:transaction_id`__
+> __`GET /v1/accounts/{account}/payments/{transaction_id}`__
 
-To confirm that your payment has been submitted successfully, you can call this API endpoint.  The `:transaction_id` value can either be the transaction hash for the desired payment, or the payment's client resource ID.
+To confirm that your payment has been submitted successfully, you can call this API endpoint.  The `transaction_id` value can either be the transaction hash for the desired payment, or the payment's client resource ID.
 
 The server will return the details of your payment:
 
@@ -494,67 +497,35 @@ Note that there can be a delay in processing a submitted payment; if the payment
 
 ## Receiving Payments ##
 
-Applications will not only need to submit payments but monitor all incoming transactions for a desired Ripple address.
+As well as sending payments, your application will need to know when incoming payments have been received.  To do this, you first make the following API call:
 
-> ___NOTE___: The API currently seems to be broken here -- you can only retrieve notifications for a single transaction hash or client resource ID, not across all transactions for an account.  I have commented this section out until we can figure out how to receive notifications across all transactions for an account.
+> __`GET /v1/accounts/{account}/payments?direction=incoming`__
 
-<!--
+This will return the most recent incoming payments for your account, up to a maximum of 20.  You can process these historical payments if you want, and also retrieve more historical payments if you need to by using the `page` parameter, as described in the [Payment History](#payment-history) section below.
 
-1. Checking the most recent notification
-2. Checking the next notification
+Regardless of what else you do with these payments, you need to extract the value of the `ledger` field from the most recent (ie, first) payment in the returned list.  Convert this number to an integer and increment it by one.  The resulting value, which will we call the `next_ledger` value, is the starting point for polling for new payments.
 
-## Checking Notifications ##
+Your application should then periodically make the following API call:
 
-### Most recent notification ###
+> __`GET /v1/accounts/{account}/payments?direction=incoming&earliest_first=true&start_ledger={next_ledger}`__
 
-#### `GET /api/v1/addresses/:address/next_notification` ####
+This will return any _new_ payments which have been received, up to a maximum of 20.  You should process these incoming payments.  If you received a list of 20 payments, there may be more payments to be processed.  You should then use the `page` parameter to get the next chunk of 20 payments, like this:
 
-Use this to retrieve the most recent notification on the account:
+> __`GET /v1/accounts/{account}/payments?direction=incoming&earliest_first=true&start_ledger={next_ledger}&page=2`__
 
-To find out more information about that payment follow the link at `tx_url`. Otherwise follow the `next_notification_url` and check for the next notification.
+Continue retrieving the payments, incrementing the `page` parameter each time, until there are no new incoming payments to be processed.
 
-If notifications are being retrieved from a `rippled` server that does not have a full historical database, the response may have serveral blank fields.
+> __Note:__ We use the `earliest_first` parameter to retrieve the payments in ascending date order (ie, the oldest payment first).  This ensures that if any more payments come in after the first API call with `start_ledger` set to `next_ledger`, you won't miss any payments.  If you use the `page` parameter while retrieving the payments in descending order (ie, the most recent payment first), you may miss one or more payments while scanning through the pages.
 
-```js
-{
-  "success": true,
-  "notification": {
-    "address": "rKXCummUHnenhYudNb9UoJ4mGBR75vFcgz",
-    "type": "payment",
-    "tx_direction": "incoming",
-    "tx_state": "confirmed",
-    "tx_result": "tesSUCCESS",
-    "tx_ledger": 4716034,
-    "tx_hash": "EC19E24AA51D39E809597A5DCF3A7E253F98C27FE3287CB919319A5C59AD8302",
-    "tx_timestamp": 1391130630000,
-    "tx_timestamp_human": "2014-01-31T01:10:30.000Z",
-    "tx_url": "http://api/v1/addresses/rKXCummUHnenhYudNb9UoJ4mGBR75vFcgz/payments/EC19E24AA51D39E809597A5DCF3A7E253F98C27FE3287CB919319A5C59AD8302?ledger=4716034",
-    "next_notification_url": "http://ripple-rest.herokuapp.com:49598/api/v1/addresses/rKXCummUHnenhYudNb9UoJ4mGBR75vFcgz/next_notification/EC19E24AA51D39E809597A5DCF3A7E253F98C27FE3287CB919319A5C59AD8302?ledger=4716034"
-    "confirmation_token": ""
-  }
-}
-```
+Once you have retrieved all the payments, you should update your `next_ledger` value by once again taking the value of the `ledger` field from the most recent (ie, last) payment received, converting this value to an integer and incrementing it by one.  This will give you the `next_ledger` value to use the next time you poll for payments.
 
-### Checking next notification ###
-
-#### `GET /api/v1/addresses/:address/next_notification/:prev_tx_hash` ####
-
-By checking for the most recent notification above, take the hash from the most recent notification to monitor if another notification has arrived. If there is no notifications newer than the most recent, than you will receive the notification object with:
-
-`"type": "none"`
-`"tx_state": "empty"`
-
-Because the `type` is `none` and the `tx_state` is `empty`, that means there is no next notification (yet) and there are no transactions pending in the outgoing queue. A `tx_state` of `pending` would indicate that there are still transactions waiting for confirmation.
-
-If there is a newer notification than the one you are checking on, than the response will contain a new notification object.
-
--->
+Using this approach, you can regularly poll for new incoming payments, confident that no payments will be processed twice, and no incoming payments will be missed.
 
 # ACCOUNTS #
 
 ## Payment History ##
 <span></span>
-> __`GET /v1/accounts/:account/payments`__
+> __`GET /v1/accounts/{account}/payments`__
 
 This API endpoint can be used to browse through an account's payment history.  The following query string parameters can be used to filter the list of returned payments:
 
@@ -570,9 +541,17 @@ This API endpoint can be used to browse through an account's payment history.  T
 > 
 > > If set to `true`, the results will only include payments which were successfully validated and written into the ledger.  Otherwise, failed payments will be included.
 > 
+> `direction`
+> 
+> > Limit the results to only include the given type of payments.  The following direction values are currently supported:
+> > 
+> > > `incoming`  
+> > > `outgoing`  
+> > > `pending`
+> 
 > `earliest_first`
 > 
-> > If set to `true`, the payments will be returned in ascending date order.  Otherwise, the payments will be returned in descending date order (ie, the most recent payment will be returned first).  Defaults to `true`.
+> > If set to `true`, the payments will be returned in ascending date order.  Otherwise, the payments will be returned in descending date order (ie, the most recent payment will be returned first).  Defaults to `false`.
 > 
 > `start_ledger`
 > 
@@ -617,11 +596,11 @@ Note that the `ripple-rest` API has to retrieve the full list of payments from t
 
 ## Account Balances ##
 <span></span>
-> __`GET /v1/accounts/:account/balances`__
+> __`GET /v1/accounts/{account}/balances`__
 
 Retrieve the current balances for the given Ripple account.
 
-The `:account` parameter should be set to the Ripple address of the desired account.  The server will return a JSON object which looks like the following:
+The `account` parameter should be set to the Ripple address of the desired account.  The server will return a JSON object which looks like the following:
 
 ```js
 {
@@ -648,7 +627,7 @@ There will be one entry in the `balances` array for the account's XRP balance, a
 
 You can retrieve an account's settings by using the following endpoint:
 
-> __`GET /v1/accounts/:account/settings`__
+> __`GET /v1/accounts/{account}/settings`__
 
 The server will return a list of the current settings in force for the given account, in the form of a JSON object:
 
@@ -682,6 +661,10 @@ The following account settings are currently supported:
 > > If this is set to `true`, payments in XRP will not be allowed.
 > 
 > `DisableMaster`
+> 
+> > This is not currently documented.
+> 
+> `Sequence`
 > 
 > > This is not currently documented.
 > 
@@ -793,7 +776,7 @@ If the server is not currently connected to the Ripple network, the following er
 
 While the `ripple-rest` API is a high-level API built on top of the `rippled` server, there are times when you may need to access an underlying Ripple transaction rather than dealing with the `ripple-rest` API directly.  When you need to do this, you can retrieve the standard Ripple transaction by using the following endpoint:
 
-> __`GET /v1/transactions/:tx_hash`__
+> __`GET /v1/transactions/{tx_hash}`__
 
 This retrieves the underlying Ripple transaction with the given transaction hash value.  Upon completion, the server will return following JSON object:
 
