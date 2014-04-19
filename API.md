@@ -642,59 +642,63 @@ The server will return a list of the current settings in force for the given acc
 
 The following account settings are currently supported:
 
-> `PasswordSpent`
+> `require_destination_tag`
+>
+> > If this is set to `true`, incoming payments will only be validated if they include a `destination_tag` value.  Note that this is used primarily by gateways that operate exclusively with hosted wallets.
+> 
+> `require_authorization`
+> 
+> > If this is set to `true`, incoming trustlines will only be validated if this account first creates a trustline to the counterparty with the authorized flag set to true.  This may be used by gateways to prevent accounts unknown to them from holding currencies they issue.
+> 
+> `disallow_xrp`
+> 
+> > If this is set to `true`, payments in XRP will not be allowed.
+> 
+> `email_hash`
+> 
+> > The MD5 128-bit hash of the account owner's email address, if known.
+> 
+> `message_key`
+> 
+> > An optional public key, represented as a hex string, that can be used to allow others to send encrypted messages to the account owner.
+> 
+> `url`
+> 
+> > The domain name associated with this account.
+> 
+> `transfer_rate`
+> 
+> > The rate charged each time a holder of currency issued by this account transfers some funds.  The default rate is `"1.0"; a rate of `"1.01"` is a 1% charge on top of the amount being transferred.  Up to nine decimal places are supported.
+
+<!-- NOTE: the following fields are not currently included in the schema.  I've followed Brandon's suggestion and hidden them for now.
+
+> `password_spent`
 > 
 > > `true` if the password has been "spent", else `false`.
 > > 
 > > > NOTE: This is not currently listed in the account settings schema, so I'm not sure what this setting is used for.
 > 
-> `RequireDestTag`
->
-> > If this is set to `true`, incoming payments will only be validated if they include a `destination_tag` value.  Note that this is used primarily by gateways that operate exclusively with hosted wallets.
-> 
-> `RequireAuth`
-> 
-> > If this is set to `true`, incoming trustlines will only be validated if this account first creates a trustline to the counterparty with the authorized flag set to true.  This may be used by gateways to prevent accounts unknown to them from holding currencies they issue.
-> 
-> `DisallowXRP`
-> 
-> > If this is set to `true`, payments in XRP will not be allowed.
-> 
-> `DisableMaster`
+> `disable_master`
 > 
 > > This is not currently documented.
 > 
-> `Sequence`
+> `transaction_sequence`
 > 
 > > This is not currently documented.
 > 
-> `EmailHash`
-> 
-> > The MD5 128-bit hash of the account owner's email address, if known.
-> 
-> `WalletLocator`
+> `wallet_locator`
 > 
 > > This is not currently documented.
 > 
-> `WalletSize`
+> `wallet_size`
 > 
 > > This is not currently documented.
 > 
-> `MessageKey`
-> 
-> > An optional public key, represented as a hex string, that can be used to allow others to send encrypted messages to the account owner.
-> 
-> `Domain`
-> 
-> > The domain name associated with this account.
-> 
-> `TransferRate`
-> 
-> > The rate charged each time a holder of currency issued by this account transfers some funds.  The default rate is `"1.0"; a rate of `"1.01"` is a 1% charge on top of the amount being transferred.  Up to nine decimal places are supported.
-> 
-> `Signers`
+> `signers`
 > 
 > > This is not currently documented.
+
+-->
 
 To change an account's settings, make an HTTP `POST` request to the above endpoint.  The request must have a content-type of `application/json`, and the body of the request should look like this:
 
